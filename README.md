@@ -20,4 +20,6 @@ OR `go build .`
 
 ## Usage
 
-<video src="./groq-usage.mp4" controls="controls" style="max-width: 900px;" />
+https://github.com/PR4S4D/groq-cli/assets/20255076/babfd68e-6b41-4cf0-a368-1301a93d7328
+
+
