@@ -24,4 +24,4 @@ OR `go build .`
 
 ## Usage
 
-https://github.com/PR4S4D/groq-cli/assets/20255076/babfd68e-6b41-4cf0-a368-1301a93d7328
+https://github.com/PR4S4D/groq-cli/assets/20255076/75e11801-d415-49ea-9820-542b3a9a4ed3
