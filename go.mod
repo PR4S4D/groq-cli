@@ -7,6 +7,7 @@ require (
 	github.com/charmbracelet/huh v0.3.0
 	github.com/charmbracelet/huh/spinner v0.0.0-20240417163504-acfe24c3f5b5
 	github.com/go-resty/resty/v2 v2.12.0
+	github.com/joho/godotenv v1.5.1
 )
 
 require (

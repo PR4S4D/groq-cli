@@ -12,6 +12,12 @@ A simple golang CLI tool using GROQ API and Charm.sh libraries
 
 OR use the binary in the repo
 
-## Setup GROQ_API_KEY env variable
+OR `go build .`
 
-GROQ API key can be request here - https://console.groq.com/keys
+## Env variables
+
+- Rename .env.example to rename and configure the values
+
+## Usage
+
+<video src="./groq-usage.mp4" controls="controls" style="max-width: 900px;" />

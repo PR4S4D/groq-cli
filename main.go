@@ -12,17 +12,17 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/huh/spinner"
 	"github.com/go-resty/resty/v2"
+	"github.com/joho/godotenv"
 )
 
 var client *resty.Client
 
-// llama3-8b-8192
-// llama3-70b-8192
-// mixtral-8x7b-32768
-// gemma-7b-it
-var grogModel = "llama3-8b-8192"
-
 func main() {
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
 	initRestClient()
 	var output string
@@ -106,6 +106,7 @@ func getGrogResponse(input string) string {
 }
 
 func getRequestBody(input string) string {
+	var grogModel = os.Getenv("GROQ_MODEL")
 	return fmt.Sprintf(`{
 		"model": "%s",
 		"stream": false,
