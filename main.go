@@ -19,9 +19,8 @@ var client *resty.Client
 
 func main() {
 
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
+		log.Fatalln("Error loading .env")
 	}
 
 	initRestClient()
@@ -48,7 +47,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		if input == "s" || input == "S" || strings.ToLower(input) == "save" {
+		if prevInput != "" && (input == "s" || input == "S" || strings.ToLower(input) == "save") {
 			utils.SaveToFile(prevInput, response)
 			continue
 		}
@@ -107,6 +106,9 @@ func getGrogResponse(input string) string {
 
 func getRequestBody(input string) string {
 	var grogModel = os.Getenv("GROQ_MODEL")
+	if len(grogModel) == 0 {
+		grogModel = "llama3-8b-8192"
+	}
 	return fmt.Sprintf(`{
 		"model": "%s",
 		"stream": false,
