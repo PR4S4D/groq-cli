@@ -1,13 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"groq-cli/types"
 	"groq-cli/utils"
 	"log"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/huh/spinner"
@@ -15,19 +18,59 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var client *resty.Client
+// Message represents the structure of a chat message.
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
 
-func main() {
+var (
+	client     *resty.Client
+	grogModel  string
+	grogModels []string
+)
 
+func initialize() {
 	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
 		log.Fatalln("Error loading .env")
 	}
 
 	initRestClient()
-	var output string
-	var input string
-	var prevInput string
-	var response string
+
+	grogModel = os.Getenv("GROQ_MODEL")
+	grogModels = strings.Split(os.Getenv("GROQ_MODELS"), " ")
+	if len(grogModel) == 0 {
+		grogModel = "llama3-8b-8192"
+	}
+	if len(grogModels) == 0 {
+		grogModels = []string{"llama3-8b-8192"}
+	}
+}
+
+func main() {
+	initialize()
+
+	var output, input, prevInput, response string
+
+	filePtr := flag.String("f", "default", "Prompt file")
+	useAllModels := flag.Bool("A", false, "Use all models")
+	flag.Parse()
+
+	// handle inputs from files
+	if *filePtr != "default" {
+		filePrompt, err := os.ReadFile(*filePtr)
+		check(err)
+		input = strings.TrimSpace(string(filePrompt))
+		if *useAllModels {
+			handleAllModels(input, *filePtr)
+			os.Exit(0)
+		} else {
+			response = getGrogResponse(input, grogModel)
+			output = utils.RenderMarkDown(response, "dracula")
+			fmt.Print(output)
+			os.Exit(0)
+		}
+	}
 
 	for {
 		input = ""
@@ -43,9 +86,7 @@ func main() {
 		).WithTheme(huh.ThemeDracula()).WithShowHelp(false)
 
 		err := form.Run()
-		if err != nil {
-			log.Fatal(err)
-		}
+		check(err)
 
 		if prevInput != "" && (input == "s" || input == "S" || strings.ToLower(input) == "save") {
 			utils.SaveToFile(prevInput, response)
@@ -56,7 +97,7 @@ func main() {
 			title := utils.RenderMarkDown("# "+utils.ToTitleCase(input), "pink")
 
 			action := func() {
-				response = getGrogResponse(input)
+				response = getGrogResponse(input, grogModel)
 				output = utils.RenderMarkDown(response, "dracula")
 			}
 			prevInput = input
@@ -85,8 +126,8 @@ func initRestClient() {
 
 }
 
-func getGrogResponse(input string) string {
-	resp, err := client.R().SetBody(getRequestBody(input)).Post("https://api.groq.com/openai/v1/chat/completions")
+func getGrogResponse(input string, model string) string {
+	resp, err := client.R().SetBody(getRequestBody(input, model)).Post("https://api.groq.com/openai/v1/chat/completions")
 
 	if err != nil {
 		log.Fatal(err)
@@ -104,17 +145,60 @@ func getGrogResponse(input string) string {
 
 }
 
-func getRequestBody(input string) string {
-	var grogModel = os.Getenv("GROQ_MODEL")
-	if len(grogModel) == 0 {
-		grogModel = "llama3-8b-8192"
+func handleAllModels(input, filePtr string) {
+	outputFileName := strings.Split(filePtr, ".")[0] + "-output.md"
+
+	var wg sync.WaitGroup
+
+	f, err := os.Create(outputFileName)
+	check(err)
+	defer f.Close()
+
+	for _, model := range grogModels {
+		wg.Add(1)
+		go func(model string) {
+			defer wg.Done()
+			response := getGrogResponse(input, model)
+			f.WriteString(fmt.Sprintf("## %s \n\n", model))
+			f.WriteString(response)
+			f.WriteString("--- \n\n\n")
+		}(model)
 	}
-	return fmt.Sprintf(`{
-		"model": "%s",
-		"stream": false,
-		"max_tokens": 8192,
-		"messages": [
-			{"role": "user", "content": "%s"}
-		]
-	}`, grogModel, input)
+	wg.Wait()
+	fmt.Printf("Writing to file: %s\n", outputFileName)
+	os.Exit(0)
+}
+
+func getRequestBody(input string, model string) string {
+	if len(model) == 0 {
+		model = "llama3-8b-8192"
+	}
+
+	var requestBody struct {
+		Model    string    `json:"model"`
+		Stream   bool      `json:"stream"`
+		Messages []Message `json:"messages"`
+	}
+
+	requestBody.Model = model
+	requestBody.Stream = false
+	requestBody.Messages = []Message{{Role: "user", Content: input}}
+
+	w := bytes.NewBuffer(nil)
+	enc := json.NewEncoder(w)
+	err := enc.Encode(&requestBody)
+	if err != nil {
+		panic(err)
+	}
+	jsonReq := w.Bytes()
+
+	// fmt.Println(string(jsonReq))
+
+	return string(jsonReq)
+}
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
 }

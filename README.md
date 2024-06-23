@@ -17,11 +17,21 @@ OR `go build .`
 ## Env variables
 
 - Rename .env.example to .env and configure the values
-- OR configure GROQ_API_KEY and GROQ_MODEL env variables
+- OR configure GROQ_API_KEY, GROQ_MODEL and GROQ_MODELS env variables
 
 - For windows:
-  ![Window Env](./media/grog-cli-env-windows.png)
+  
+![Window Env](./media/grog-cli-env-windows.png)
 
 ## Usage
 
-https://github.com/PR4S4D/groq-cli/assets/20255076/75e11801-d415-49ea-9820-542b3a9a4ed3
+```sh
+  grog-cli.exe
+  groq-cli.exe -f File.md # reads the prompt from the file
+  groq-cli.exe -A -f File.md # uses all the available models (GROQ_MODELS env var) and saves the responses to a file
+```
+
+https://github.com/PR4S4D/groq-cli/assets/20255076/701fb865-79d2-495a-b14b-832300446942
+
+
+
